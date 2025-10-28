@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Alpine x-req</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="alpine-req.js"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            line-height: 1.6;
+        }
+
+        .test-section {
+            margin: 2rem 0;
+            padding: 1.5rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+            margin: 0.5rem 0.5rem 0.5rem 0;
+            border: 1px solid #007bff;
+            background: #007bff;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        button:hover:not(:disabled) {
+            background: #0056b3;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        input,
+        textarea {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            width: 100%;
+            margin: 0.5rem 0;
+        }
+
+        .result {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: white;
+            border-left: 4px solid #28a745;
+            border-radius: 4px;
+        }
+
+        .error {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #fff3cd;
+            border-left: 4px solid #dc3545;
+            border-radius: 4px;
+            color: #721c24;
+        }
+
+        .loading {
+            font-style: italic;
+        }
+
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Alpine x-req Testing</h1>
+
+    <!-- Test 1: Basic GET with loading indicator -->
+    <div x-data="{ loading: false, 
+            post: null, 
+            error: '', 
+            handlePost(data) { this.post = data; error = ''; }, 
+            handleError(err) { error = 'Failed to load post'} }" class="test-section">
+        <h2>Test 1: Basic GET Request</h2>
+        <button x-req="'https://jsonplaceholder.typicode.com/posts/1'" x-req-indicator="loading" x-req-ok="handlePost"
+            x-req-err="handleError" :disabled="loading">
+            <span x-show="!loading">Load Post #1</span>
+            <span x-show="loading" class="loading">Loading...</span>
+        </button>
+
+        <div x-show="post" class="result">
+            <h3 x-text="post?.title"></h3>
+            <p x-text="post?.body"></p>
+            <small>User ID: <span x-text="post?.userId"></span></small>
+        </div>
+
+        <div x-show="error" class="error" x-text="error"></div>
+    </div>
+
+    <!-- Test 2: POST Request -->
+    <div x-data="{ loading: false, 
+            title: '', 
+            body: '', 
+            result: null, 
+            error: '',
+            handleOk(d) { this.result = d; this.error = ''},
+            handleErr(e) { this.error = 'Failed to create post' }
+         }" class="test-section">
+        <h2>Test 2: POST Request</h2>
+        <input type="text" placeholder="Title" x-model="title">
+        <textarea placeholder="Body" x-model="body" rows="3"></textarea>
+
+        <button x-req.post="'https://jsonplaceholder.typicode.com/posts'"
+            x-req-body="{title: title, body: body, userId: 1}" x-req-indicator="loading" x-req-ok="handleOk"
+            x-req-err="handleErr" x-req-trigger="@click" :disabled="loading || !title || !body">
+            <span x-show="!loading">Create Post</span>
+            <span x-show="loading" class="loading">Creating...</span>
+        </button>
+
+        <div x-show="result" class="result">
+            <p class="success">✓ Post created with ID: <span x-text="result?.id"></span></p>
+            <p><strong>Title:</strong> <span x-text="result?.title"></span></p>
+            <p><strong>Body:</strong> <span x-text="result?.body"></span></p>
+        </div>
+
+        <div x-show="error" class="error" x-text="error"></div>
+    </div>
+
+    <!-- Test 3: Auto-load on init -->
+    <div class="test-section" x-data="{ 
+            loading: false, 
+            users: [],
+            handleUsers(data) {
+                this.users = data;
+            }
+         }" x-req="'https://jsonplaceholder.typicode.com/users?_limit=5'" x-req-trigger="@alpine:initialized.window"
+        x-req-indicator="loading" x-req-ok="handleUsers">
+        <h2>Test 3: Auto-load on Init</h2>
+        <div x-show="loading" class="loading">Loading users...</div>
+
+        <div x-show="!loading && users.length > 0" class="result">
+            <ul>
+                <template x-for="user in users" :key="user.id">
+                    <li>
+                        <strong x-text="user.name"></strong> -
+                        <span x-text="user.email"></span>
+                    </li>
+                </template>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Test 4: PUT Request (Update) -->
+    <div class="test-section" x-data="{ 
+            loading: false, 
+            postId: 1, 
+            title: 'Updated Title', 
+            result: null,
+            handleUpdate(data) {
+                this.result = data;
+            }
+         }">
+        <h2>Test 4: PUT Request (Update)</h2>
+        <input type="number" placeholder="Post ID" x-model="postId" min="1">
+        <input type="text" placeholder="New Title" x-model="title">
+
+        <button x-req.put="`https://jsonplaceholder.typicode.com/posts/${postId}`"
+            x-req-body="{title: title, body: 'Updated content', userId: 1}" x-req-indicator="loading"
+            x-req-ok="handleUpdate" :disabled="loading || !title">
+            <span x-show="!loading">Update Post</span>
+            <span x-show="loading" class="loading">Updating...</span>
+        </button>
+
+        <div x-show="result" class="result">
+            <p class="success">✓ Post #<span x-text="result?.id"></span> updated!</p>
+            <p><strong>New Title:</strong> <span x-text="result?.title"></span></p>
+        </div>
+    </div>
+
+    <!-- Test 5: DELETE Request -->
+    <div class="test-section" x-data="{ 
+            loading: false, 
+            postId: 1, 
+            deleted: false,
+            handleDelete() {
+                this.deleted = true;
+            }
+         }">
+        <h2>Test 5: DELETE Request</h2>
+        <input type="number" placeholder="Post ID to delete" x-model="postId" min="1">
+
+        <button x-req.delete="`https://jsonplaceholder.typicode.com/posts/${postId}`" x-req-indicator="loading"
+            x-req-ok="handleDelete" :disabled="loading">
+            <span x-show="!loading">Delete Post</span>
+            <span x-show="loading" class="loading">Deleting...</span>
+        </button>
+
+        <div x-show="deleted" class="result">
+            <p class="success">✓ Post #<span x-text="postId"></span> deleted successfully!</p>
+        </div>
+    </div>
+
+    <!-- Test 6: Form with prevent -->
+    <div class="test-section">
+        <h2>Test 6: Form Submit with Prevent</h2>
+        <form x-data="{ 
+                submitting: false, 
+                submitted: false, 
+                name: '', 
+                email: '',
+                handleSubmit() {
+                    this.submitted = true;
+                    this.name = '';
+                    this.email = '';
+                }
+             }" x-req.post="'https://jsonplaceholder.typicode.com/posts'" x-req-body="{name: name, email: email}"
+            x-req-trigger="@submit.prevent" x-req-indicator="submitting" x-req-ok="handleSubmit">
+            <input type="text" placeholder="Name" x-model="name" :disabled="submitting">
+            <input type="email" placeholder="Email" x-model="email" :disabled="submitting">
+            <button type="submit" :disabled="submitting || !name || !email">
+                <span x-show="!submitting">Submit</span>
+                <span x-show="submitting" class="loading">Submitting...</span>
+            </button>
+            <p x-show="submitted" class="success">✓ Form submitted successfully!</p>
+        </form>
+    </div>
+
+    <!-- Test 7: Multiple Triggers -->
+    <div class="test-section" x-data="{ 
+            loading: false, 
+            count: 0,
+            handleIncrement() {
+                this.count++;
+            }
+         }">
+        <h2>Test 7: Multiple Triggers</h2>
+        <p>Click the button to increment counter (via API)</p>
+
+        <button x-req.post="'https://jsonplaceholder.typicode.com/posts'" x-req-body="{count: count}"
+            x-req-trigger="@click @alpine:initialized.window" x-req-indicator="loading" x-req-ok="handleIncrement" :disabled="loading">
+            <span x-show="!loading">Increment</span>
+            <span x-show="loading" class="loading">Processing...</span>
+        </button>
+
+        <div class="result">
+            <p>Count: <strong x-text="count"></strong></p>
+        </div>
+    </div>
+
+    <!-- Test 8: Error Handling -->
+    <div class="test-section" x-data="{ 
+            loading: false, 
+            error: '',
+            handleOk() {
+                this.error = '';
+            },
+            handleError(err) {
+                this.error = `Error: ${err.status} - ${err.statusText}`;
+            }
+         }">
+        <h2>Test 8: Error Handling (404)</h2>
+        <button x-req="'https://jsonplaceholder.typicode.com/posts/999999'" x-req-indicator="loading"
+            x-req-ok="handleOk" x-req-err="handleError" :disabled="loading">
+            <span x-show="!loading">Request Non-existent Post</span>
+            <span x-show="loading" class="loading">Loading...</span>
+        </button>
+
+        <div x-show="error" class="error" x-text="error"></div>
+    </div>
+
+</body>
+
+</html>
