@@ -1,6 +1,8 @@
 # Alpine.js x-req
 
-A lightweight Alpine.js plugin that provides a declarative way to make HTTP requests directly from your HTML using the `x-req` directive.
+A lightweight Alpine.js plugin for components that need to fetch JSON data. It provides a declarative way to make requests directly from your HTML using the `x-req` directive.
+
+> Built this for a side project and figured it might save someone else some time too!
 
 ## Features
 
