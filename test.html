@@ -91,14 +91,14 @@
     <h1>Alpine x-req Testing</h1>
 
     <!-- Test 1: Basic GET with loading indicator -->
-    <div x-data="{ loading: false, 
-            post: null, 
-            error: '', 
-            handlePost(data) { this.post = data; error = ''; }, 
-            handleError(err) { error = 'Failed to load post'} }" class="test-section">
+    <div x-data="{ loading: false, post: null, error: '' }" class="test-section">
         <h2>Test 1: Basic GET Request</h2>
-        <button x-req="'https://jsonplaceholder.typicode.com/posts/1'" x-req-indicator="loading" x-req-ok="handlePost"
-            x-req-err="handleError" :disabled="loading">
+        <button x-req="'https://jsonplaceholder.typicode.com/posts/1'" 
+                @x-req:start="loading = true"
+                @x-req:done="loading = false"
+                @x-req:ok="post = $event.detail; error = ''" 
+                @x-req:err="error = 'Failed to load post'"
+                :disabled="loading">
             <span x-show="!loading">Load Post #1</span>
             <span x-show="loading" class="loading">Loading...</span>
         </button>
@@ -113,21 +113,19 @@
     </div>
 
     <!-- Test 2: POST Request -->
-    <div x-data="{ loading: false, 
-            title: '', 
-            body: '', 
-            result: null, 
-            error: '',
-            handleOk(d) { this.result = d; this.error = ''},
-            handleErr(e) { this.error = 'Failed to create post' }
-         }" class="test-section">
+    <div x-data="{ loading: false, title: '', body: '', result: null, error: '' }" class="test-section">
         <h2>Test 2: POST Request</h2>
         <input type="text" placeholder="Title" x-model="title">
         <textarea placeholder="Body" x-model="body" rows="3"></textarea>
 
         <button x-req.post="'https://jsonplaceholder.typicode.com/posts'"
-            x-req-body="{title: title, body: body, userId: 1}" x-req-indicator="loading" x-req-ok="handleOk"
-            x-req-err="handleErr" x-req-trigger="@click" :disabled="loading || !title || !body">
+                x-req-body="{title: title, body: body, userId: 1}" 
+                x-req-trigger="@click"
+                @x-req:start="loading = true"
+                @x-req:done="loading = false"
+                @x-req:ok="result = $event.detail; error = ''"
+                @x-req:err="error = 'Failed to create post'" 
+                :disabled="loading || !title || !body">
             <span x-show="!loading">Create Post</span>
             <span x-show="loading" class="loading">Creating...</span>
         </button>
@@ -142,14 +140,13 @@
     </div>
 
     <!-- Test 3: Auto-load on init -->
-    <div class="test-section" x-data="{ 
-            loading: false, 
-            users: [],
-            handleUsers(data) {
-                this.users = data;
-            }
-         }" x-req="'https://jsonplaceholder.typicode.com/users?_limit=5'" x-req-trigger="@alpine:initialized.window"
-        x-req-indicator="loading" x-req-ok="handleUsers">
+    <div class="test-section" 
+         x-data="{ loading: false, users: [] }" 
+         x-req="'https://jsonplaceholder.typicode.com/users?_limit=5'" 
+         x-req-trigger="@alpine:initialized.window"
+         @x-req:start="loading = true"
+         @x-req:done="loading = false"
+         @x-req:ok="users = $event.detail">
         <h2>Test 3: Auto-load on Init</h2>
         <div x-show="loading" class="loading">Loading users...</div>
 
@@ -166,22 +163,17 @@
     </div>
 
     <!-- Test 4: PUT Request (Update) -->
-    <div class="test-section" x-data="{ 
-            loading: false, 
-            postId: 1, 
-            title: 'Updated Title', 
-            result: null,
-            handleUpdate(data) {
-                this.result = data;
-            }
-         }">
+    <div class="test-section" x-data="{ loading: false, postId: 1, title: 'Updated Title', result: null }">
         <h2>Test 4: PUT Request (Update)</h2>
         <input type="number" placeholder="Post ID" x-model="postId" min="1">
         <input type="text" placeholder="New Title" x-model="title">
 
         <button x-req.put="`https://jsonplaceholder.typicode.com/posts/${postId}`"
-            x-req-body="{title: title, body: 'Updated content', userId: 1}" x-req-indicator="loading"
-            x-req-ok="handleUpdate" :disabled="loading || !title">
+                x-req-body="{title: title, body: 'Updated content', userId: 1}" 
+                @x-req:start="loading = true"
+                @x-req:done="loading = false"
+                @x-req:ok="result = $event.detail"
+                :disabled="loading || !title">
             <span x-show="!loading">Update Post</span>
             <span x-show="loading" class="loading">Updating...</span>
         </button>
@@ -193,19 +185,15 @@
     </div>
 
     <!-- Test 5: DELETE Request -->
-    <div class="test-section" x-data="{ 
-            loading: false, 
-            postId: 1, 
-            deleted: false,
-            handleDelete() {
-                this.deleted = true;
-            }
-         }">
+    <div class="test-section" x-data="{ loading: false, postId: 1, deleted: false }">
         <h2>Test 5: DELETE Request</h2>
         <input type="number" placeholder="Post ID to delete" x-model="postId" min="1">
 
-        <button x-req.delete="`https://jsonplaceholder.typicode.com/posts/${postId}`" x-req-indicator="loading"
-            x-req-ok="handleDelete" :disabled="loading">
+        <button x-req.delete="`https://jsonplaceholder.typicode.com/posts/${postId}`" 
+                @x-req:start="loading = true"
+                @x-req:done="loading = false"
+                @x-req:ok="deleted = true"
+                :disabled="loading">
             <span x-show="!loading">Delete Post</span>
             <span x-show="loading" class="loading">Deleting...</span>
         </button>
@@ -218,18 +206,13 @@
     <!-- Test 6: Form with prevent -->
     <div class="test-section">
         <h2>Test 6: Form Submit with Prevent</h2>
-        <form x-data="{ 
-                submitting: false, 
-                submitted: false, 
-                name: '', 
-                email: '',
-                handleSubmit() {
-                    this.submitted = true;
-                    this.name = '';
-                    this.email = '';
-                }
-             }" x-req.post="'https://jsonplaceholder.typicode.com/posts'" x-req-body="{name: name, email: email}"
-            x-req-trigger="@submit.prevent" x-req-indicator="submitting" x-req-ok="handleSubmit">
+        <form x-data="{ submitting: false, submitted: false, name: '', email: '' }" 
+              x-req.post="'https://jsonplaceholder.typicode.com/posts'" 
+              x-req-body="{name: name, email: email}"
+              x-req-trigger="@submit.prevent" 
+              @x-req:start="submitting = true"
+              @x-req:done="submitting = false"
+              @x-req:ok="submitted = true; name = ''; email = ''">
             <input type="text" placeholder="Name" x-model="name" :disabled="submitting">
             <input type="email" placeholder="Email" x-model="email" :disabled="submitting">
             <button type="submit" :disabled="submitting || !name || !email">
@@ -240,47 +223,101 @@
         </form>
     </div>
 
-    <!-- Test 7: Multiple Triggers -->
-    <div class="test-section" x-data="{ 
-            loading: false, 
-            count: 0,
-            handleIncrement() {
-                this.count++;
-            }
-         }">
-        <h2>Test 7: Multiple Triggers</h2>
-        <p>Click the button to increment counter (via API)</p>
+    <!-- Test 7: Event Bubbling -->
+    <div class="test-section" 
+         x-data="{ loading: false, count: 0 }"
+         @x-req:start="loading = true"
+         @x-req:done="loading = false">
+        <h2>Test 7: Event Bubbling</h2>
+        <p>Parent element handles loading state for both buttons</p>
 
-        <button x-req.post="'https://jsonplaceholder.typicode.com/posts'" x-req-body="{count: count}"
-            x-req-trigger="@click @alpine:initialized.window" x-req-indicator="loading" x-req-ok="handleIncrement" :disabled="loading">
-            <span x-show="!loading">Increment</span>
+        <button x-req.post="'https://jsonplaceholder.typicode.com/posts'" 
+                x-req-body="{count: count}"
+                @x-req:ok="count++"
+                :disabled="loading">
+            <span x-show="!loading">Increment via API #1</span>
+            <span x-show="loading" class="loading">Processing...</span>
+        </button>
+
+        <button x-req.post="'https://jsonplaceholder.typicode.com/posts'" 
+                x-req-body="{count: count}"
+                @x-req:ok="count++"
+                :disabled="loading">
+            <span x-show="!loading">Increment via API #2</span>
             <span x-show="loading" class="loading">Processing...</span>
         </button>
 
         <div class="result">
             <p>Count: <strong x-text="count"></strong></p>
+            <p x-show="loading" class="loading">One of the buttons is loading...</p>
         </div>
     </div>
 
     <!-- Test 8: Error Handling -->
-    <div class="test-section" x-data="{ 
-            loading: false, 
-            error: '',
-            handleOk() {
-                this.error = '';
-            },
-            handleError(err) {
-                this.error = `Error: ${err.status} - ${err.statusText}`;
-            }
-         }">
+    <div class="test-section" x-data="{ loading: false, error: '' }">
         <h2>Test 8: Error Handling (404)</h2>
-        <button x-req="'https://jsonplaceholder.typicode.com/posts/999999'" x-req-indicator="loading"
-            x-req-ok="handleOk" x-req-err="handleError" :disabled="loading">
+        <button x-req="'https://jsonplaceholder.typicode.com/posts/999999'" 
+                @x-req:start="loading = true; error = ''"
+                @x-req:done="loading = false"
+                @x-req:ok="error = ''"
+                @x-req:err="error = `Error: ${$event.detail.response?.status || 'Network error'}`"
+                :disabled="loading">
             <span x-show="!loading">Request Non-existent Post</span>
             <span x-show="loading" class="loading">Loading...</span>
         </button>
 
         <div x-show="error" class="error" x-text="error"></div>
+    </div>
+
+    <!-- Test 9: Inline Event Handlers -->
+    <div class="test-section" x-data="{ post: null }">
+        <h2>Test 9: Inline Event Handlers</h2>
+        <p>Simple inline handlers without function definitions</p>
+        
+        <button x-req="'https://jsonplaceholder.typicode.com/posts/1'" 
+                @x-req:ok="post = $event.detail"
+                @x-req:err="alert('Failed to load')">
+            Load Post
+        </button>
+
+        <div x-show="post" class="result">
+            <h3 x-text="post?.title"></h3>
+            <p x-text="post?.body"></p>
+        </div>
+    </div>
+
+    <!-- Test 10: Function Handlers -->
+    <div class="test-section" x-data="{ 
+        loading: false,
+        posts: [],
+        handleSuccess(event) {
+            this.posts = event.detail;
+            console.log('Loaded', this.posts.length, 'posts');
+        },
+        handleError(event) {
+            console.error('Request failed:', event.detail.error);
+        }
+    }">
+        <h2>Test 10: Function Handlers</h2>
+        <p>Using function references for complex logic</p>
+        
+        <button x-req="'https://jsonplaceholder.typicode.com/posts?_limit=3'"
+                @x-req:start="loading = true"
+                @x-req:done="loading = false"
+                @x-req:ok="handleSuccess"
+                @x-req:err="handleError"
+                :disabled="loading">
+            <span x-show="!loading">Load Posts</span>
+            <span x-show="loading" class="loading">Loading...</span>
+        </button>
+
+        <div x-show="posts.length > 0" class="result">
+            <ul>
+                <template x-for="post in posts" :key="post.id">
+                    <li x-text="post.title"></li>
+                </template>
+            </ul>
+        </div>
     </div>
 
 </body>
