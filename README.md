@@ -7,13 +7,14 @@ A lightweight Alpine.js plugin for components that need to fetch JSON data. It p
 ## Features
 
 - 🚀 **Declarative HTTP requests** - GET, POST, PUT, DELETE, PATCH support via modifiers
-- ⚡ **Event-driven lifecycle** - Track request lifecycle with `x-req:start`, `x-req:done`, `x-req:ok`, `x-req:err` events
+- ⚡ **Event-driven lifecycle** - Track request lifecycle with `x-req:before`, `x-req:after`, `x-req:ok`, `x-req:err` events
 - 🎯 **Flexible triggers** - Support for multiple event triggers (click, submit, alpine:init, custom events, etc.)
 - 🎨 **Alpine-native handlers** - Use standard Alpine event syntax (`@x-req:ok`, `@x-req:err`)
-- 📦 **Dynamic request bodies** - Reactive body content with `x-req-body`
+- 📦 **Dynamic request bodies** - Reactive body content with `x-req-body` using `evaluateLater`
 - 🔧 **Custom headers** - Add authentication and custom headers with `x-req-headers`
 - 🌐 **Event modifiers** - Built-in support for `.prevent` and `.stop` on triggers
 - ✨ **Server-driven events** - Trigger Alpine events from server responses via `x-trigger` header
+- 🎯 **Clean syntax** - No quotes needed for static URLs, template literals for dynamic ones
 
 ## Installation
 
@@ -31,9 +32,9 @@ Include the plugin after Alpine.js:
   loading: false, 
   post: null
 }">
-  <button x-req="'/api/posts/1'" 
-          @x-req:start="loading = true"
-          @x-req:done="loading = false"
+  <button x-req="/api/posts/1" 
+          @x-req:before="loading = true"
+          @x-req:after="loading = false"
           @x-req:ok="post = $event.detail"
           @x-req:err="console.error($event.detail.error)"
           :disabled="loading">
@@ -52,27 +53,27 @@ Include the plugin after Alpine.js:
 
 The plugin dispatches the following events during the request lifecycle:
 
-### `x-req:start`
-Fired when the request begins.
+### `x-req:before`
+Fired before the request starts.
 
 ```html
-<button x-req="'/api/data'" 
-        @x-req:start="loading = true">
+<button x-req="/api/data" 
+        @x-req:before="loading = true">
 ```
 
-### `x-req:done`
-Fired when the request completes (success or error).
+### `x-req:after`
+Fired after the request completes (success or error).
 
 ```html
-<button x-req="'/api/data'" 
-        @x-req:done="loading = false">
+<button x-req="/api/data" 
+        @x-req:after="loading = false">
 ```
 
 ### `x-req:ok`
 Fired on successful response. Response data is available in `$event.detail`.
 
 ```html
-<button x-req="'/api/posts/1'" 
+<button x-req="/api/posts/1" 
         @x-req:ok="post = $event.detail">
 ```
 
@@ -84,7 +85,7 @@ Or call a function:
     console.log(event.detail) 
   } 
 }">
-  <button x-req="'/api/data'" 
+  <button x-req="/api/data" 
           @x-req:ok="handleSuccess">
 ```
 
@@ -92,7 +93,7 @@ Or call a function:
 Fired on request error. Error details are in `$event.detail.error` and response in `$event.detail.response`.
 
 ```html
-<button x-req="'/api/data'" 
+<button x-req="/api/data" 
         @x-req:err="console.error($event.detail.error)">
 ```
 
@@ -102,11 +103,11 @@ All events bubble by default, allowing you to handle them on parent elements:
 
 ```html
 <div x-data="{ loading: false }"
-     @x-req:start="loading = true"
-     @x-req:done="loading = false">
+     @x-req:before="loading = true"
+     @x-req:after="loading = false">
   
-  <button x-req="'/api/posts/1'">Load Post 1</button>
-  <button x-req="'/api/posts/2'">Load Post 2</button>
+  <button x-req="/api/posts/1">Load Post 1</button>
+  <button x-req="/api/posts/2">Load Post 2</button>
   
   <div x-show="loading">Loading...</div>
 </div>
@@ -115,9 +116,28 @@ All events bubble by default, allowing you to handle them on parent elements:
 Use `.stop` to prevent bubbling if needed:
 
 ```html
-<button x-req="'/api/data'" 
+<button x-req="/api/data" 
         @x-req:ok.stop="post = $event.detail">
 ```
+
+## URL Syntax
+
+### Static URLs (No Quotes Needed!)
+
+```html
+<button x-req="/api/posts/1">Load Post</button>
+<button x-req="https://api.example.com/data">Load External Data</button>
+```
+
+### Dynamic URLs (Template Literals)
+
+```html
+<div x-data="{ postId: 1 }">
+  <button x-req="`/api/posts/${postId}`">Load Post</button>
+</div>
+```
+
+The plugin automatically detects template literals (starting with `` ` ``) and evaluates them reactively using Alpine's `evaluateLater`.
 
 ## Server-Driven Events (x-trigger Header)
 
@@ -140,7 +160,7 @@ Content-Type: application/json
 ```html
 <div x-data="{ items: [] }" 
      @refresh-list.window="loadItems()">
-  <button x-req.post="'/api/items'"
+  <button x-req.post="/api/items"
           x-req-body="{name: newItem}"
           @x-req:ok="items.push($event.detail)">
     Add Item
@@ -166,7 +186,7 @@ Content-Type: application/json
 <div x-data="{ notification: null }" 
      @show-notification="notification = $event.detail"
      @refresh-list="loadItems($event.detail.animate)">
-  <button x-req.post="'/api/items'"
+  <button x-req.post="/api/items"
           x-req-body="{name: newItem}">
     Add Item
   </button>
@@ -193,9 +213,9 @@ This pattern is inspired by htmx's `HX-Trigger` header and provides a clean way 
 ### Directive: `x-req[.method]`
 
 **Attributes:**
-- `x-req="endpoint"` - The URL to fetch (required)
-- `x-req-body="{...}"` - Request body (reactive, evaluated on each request)
-- `x-req-headers="{...}"` - Custom headers (reactive)
+- `x-req="endpoint"` - The URL to fetch (required). No quotes needed for static URLs, use template literals for dynamic ones.
+- `x-req-body="{...}"` - Request body (reactive, evaluated on each request using `evaluateLater`)
+- `x-req-headers="{...}"` - Custom headers (reactive, evaluated on each request)
 - `x-req-trigger="@event @event.modifier"` - When to trigger (default: `@click`)
 
 **Modifiers:**
@@ -212,8 +232,8 @@ This pattern is inspired by htmx's `HX-Trigger` header and provides a clean way 
 - `.document` - Listen on document object
 
 **Events:**
-- `@x-req:start` - Request started
-- `@x-req:done` - Request completed (always fires)
+- `@x-req:before` - Request is about to start
+- `@x-req:after` - Request completed (always fires, regardless of success/error)
 - `@x-req:ok` - Request succeeded (response data in `$event.detail`)
 - `@x-req:err` - Request failed (error info in `$event.detail`)
 
@@ -231,11 +251,11 @@ This pattern is inspired by htmx's `HX-Trigger` header and provides a clean way 
     <textarea x-model="form.body" placeholder="Body"></textarea>
     
     <button x-ref="submitBtn"
-            x-req.post="'/api/posts'"
+            x-req.post="/api/posts"
             x-req-body="form"
             x-req-trigger="@click.prevent"
-            @x-req:start="submitting = true"
-            @x-req:done="submitting = false"
+            @x-req:before="submitting = true"
+            @x-req:after="submitting = false"
             @x-req:ok="alert('Post created!'); form = {title: '', body: ''}"
             @x-req:err="alert('Error creating post')"
             :disabled="submitting">
@@ -250,7 +270,7 @@ This pattern is inspired by htmx's `HX-Trigger` header and provides a clean way 
 
 ```html
 <div x-data="{ users: [] }">
-  <div x-req="'/api/users'"
+  <div x-req="/api/users"
        x-req-trigger="@alpine:init.window"
        @x-req:ok="users = $event.detail">
   </div>
@@ -263,11 +283,23 @@ This pattern is inspired by htmx's `HX-Trigger` header and provides a clean way 
 </div>
 ```
 
+### Dynamic URL with Template Literal
+
+```html
+<div x-data="{ userId: 1 }">
+  <input type="number" x-model="userId" min="1">
+  <button x-req="`/api/users/${userId}`"
+          @x-req:ok="console.log($event.detail)">
+    Load User
+  </button>
+</div>
+```
+
 ### Custom Headers (Authentication)
 
 ```html
 <div x-data="{ token: 'abc123' }">
-  <button x-req="'/api/protected'"
+  <button x-req="/api/protected"
           x-req-headers="{ 'Authorization': `Bearer ${token}` }"
           @x-req:ok="console.log($event.detail)">
     Load Protected Data
