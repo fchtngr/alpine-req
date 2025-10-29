@@ -92,10 +92,10 @@
 
     <!-- Test 1: Basic GET with loading indicator -->
     <div x-data="{ loading: false, post: null, error: '' }" class="test-section">
-        <h2>Test 1: Basic GET Request</h2>
-        <button x-req="'https://jsonplaceholder.typicode.com/posts/1'" 
-                @x-req:start="loading = true"
-                @x-req:done="loading = false"
+        <h2>Test 1: Basic GET Request (No Quotes!)</h2>
+        <button x-req="https://jsonplaceholder.typicode.com/posts/1" 
+                @x-req:before="loading = true"
+                @x-req:after="loading = false"
                 @x-req:ok="post = $event.detail; error = ''" 
                 @x-req:err="error = 'Failed to load post'"
                 :disabled="loading">
@@ -114,15 +114,15 @@
 
     <!-- Test 2: POST Request -->
     <div x-data="{ loading: false, title: '', body: '', result: null, error: '' }" class="test-section">
-        <h2>Test 2: POST Request</h2>
+        <h2>Test 2: POST Request with Reactive Body</h2>
         <input type="text" placeholder="Title" x-model="title">
         <textarea placeholder="Body" x-model="body" rows="3"></textarea>
 
-        <button x-req.post="'https://jsonplaceholder.typicode.com/posts'"
+        <button x-req.post="https://jsonplaceholder.typicode.com/posts"
                 x-req-body="{title: title, body: body, userId: 1}" 
                 x-req-trigger="@click"
-                @x-req:start="loading = true"
-                @x-req:done="loading = false"
+                @x-req:before="loading = true"
+                @x-req:after="loading = false"
                 @x-req:ok="result = $event.detail; error = ''"
                 @x-req:err="error = 'Failed to create post'" 
                 :disabled="loading || !title || !body">
@@ -142,10 +142,10 @@
     <!-- Test 3: Auto-load on init -->
     <div class="test-section" 
          x-data="{ loading: false, users: [] }" 
-         x-req="'https://jsonplaceholder.typicode.com/users?_limit=5'" 
+         x-req="https://jsonplaceholder.typicode.com/users?_limit=5" 
          x-req-trigger="@alpine:initialized.window"
-         @x-req:start="loading = true"
-         @x-req:done="loading = false"
+         @x-req:before="loading = true"
+         @x-req:after="loading = false"
          @x-req:ok="users = $event.detail">
         <h2>Test 3: Auto-load on Init</h2>
         <div x-show="loading" class="loading">Loading users...</div>
@@ -162,16 +162,16 @@
         </div>
     </div>
 
-    <!-- Test 4: PUT Request (Update) -->
+    <!-- Test 4: PUT Request with Dynamic URL -->
     <div class="test-section" x-data="{ loading: false, postId: 1, title: 'Updated Title', result: null }">
-        <h2>Test 4: PUT Request (Update)</h2>
+        <h2>Test 4: PUT Request with Dynamic URL (Template Literal)</h2>
         <input type="number" placeholder="Post ID" x-model="postId" min="1">
         <input type="text" placeholder="New Title" x-model="title">
 
         <button x-req.put="`https://jsonplaceholder.typicode.com/posts/${postId}`"
                 x-req-body="{title: title, body: 'Updated content', userId: 1}" 
-                @x-req:start="loading = true"
-                @x-req:done="loading = false"
+                @x-req:before="loading = true"
+                @x-req:after="loading = false"
                 @x-req:ok="result = $event.detail"
                 :disabled="loading || !title">
             <span x-show="!loading">Update Post</span>
@@ -184,14 +184,14 @@
         </div>
     </div>
 
-    <!-- Test 5: DELETE Request -->
+    <!-- Test 5: DELETE Request with Dynamic URL -->
     <div class="test-section" x-data="{ loading: false, postId: 1, deleted: false }">
-        <h2>Test 5: DELETE Request</h2>
+        <h2>Test 5: DELETE Request with Dynamic URL</h2>
         <input type="number" placeholder="Post ID to delete" x-model="postId" min="1">
 
         <button x-req.delete="`https://jsonplaceholder.typicode.com/posts/${postId}`" 
-                @x-req:start="loading = true"
-                @x-req:done="loading = false"
+                @x-req:before="loading = true"
+                @x-req:after="loading = false"
                 @x-req:ok="deleted = true"
                 :disabled="loading">
             <span x-show="!loading">Delete Post</span>
@@ -207,11 +207,11 @@
     <div class="test-section">
         <h2>Test 6: Form Submit with Prevent</h2>
         <form x-data="{ submitting: false, submitted: false, name: '', email: '' }" 
-              x-req.post="'https://jsonplaceholder.typicode.com/posts'" 
+              x-req.post="https://jsonplaceholder.typicode.com/posts" 
               x-req-body="{name: name, email: email}"
               x-req-trigger="@submit.prevent" 
-              @x-req:start="submitting = true"
-              @x-req:done="submitting = false"
+              @x-req:before="submitting = true"
+              @x-req:after="submitting = false"
               @x-req:ok="submitted = true; name = ''; email = ''">
             <input type="text" placeholder="Name" x-model="name" :disabled="submitting">
             <input type="email" placeholder="Email" x-model="email" :disabled="submitting">
@@ -226,12 +226,12 @@
     <!-- Test 7: Event Bubbling -->
     <div class="test-section" 
          x-data="{ loading: false, count: 0 }"
-         @x-req:start="loading = true"
-         @x-req:done="loading = false">
+         @x-req:before="loading = true"
+         @x-req:after="loading = false">
         <h2>Test 7: Event Bubbling</h2>
         <p>Parent element handles loading state for both buttons</p>
 
-        <button x-req.post="'https://jsonplaceholder.typicode.com/posts'" 
+        <button x-req.post="https://jsonplaceholder.typicode.com/posts" 
                 x-req-body="{count: count}"
                 @x-req:ok="count++"
                 :disabled="loading">
@@ -239,7 +239,7 @@
             <span x-show="loading" class="loading">Processing...</span>
         </button>
 
-        <button x-req.post="'https://jsonplaceholder.typicode.com/posts'" 
+        <button x-req.post="https://jsonplaceholder.typicode.com/posts" 
                 x-req-body="{count: count}"
                 @x-req:ok="count++"
                 :disabled="loading">
@@ -256,9 +256,9 @@
     <!-- Test 8: Error Handling -->
     <div class="test-section" x-data="{ loading: false, error: '' }">
         <h2>Test 8: Error Handling (404)</h2>
-        <button x-req="'https://jsonplaceholder.typicode.com/posts/999999'" 
-                @x-req:start="loading = true; error = ''"
-                @x-req:done="loading = false"
+        <button x-req="https://jsonplaceholder.typicode.com/posts/999999" 
+                @x-req:before="loading = true; error = ''"
+                @x-req:after="loading = false"
                 @x-req:ok="error = ''"
                 @x-req:err="error = `Error: ${$event.detail.response?.status || 'Network error'}`"
                 :disabled="loading">
@@ -274,7 +274,7 @@
         <h2>Test 9: Inline Event Handlers</h2>
         <p>Simple inline handlers without function definitions</p>
         
-        <button x-req="'https://jsonplaceholder.typicode.com/posts/1'" 
+        <button x-req="https://jsonplaceholder.typicode.com/posts/1" 
                 @x-req:ok="post = $event.detail"
                 @x-req:err="alert('Failed to load')">
             Load Post
@@ -301,9 +301,9 @@
         <h2>Test 10: Function Handlers</h2>
         <p>Using function references for complex logic</p>
         
-        <button x-req="'https://jsonplaceholder.typicode.com/posts?_limit=3'"
-                @x-req:start="loading = true"
-                @x-req:done="loading = false"
+        <button x-req="https://jsonplaceholder.typicode.com/posts?_limit=3"
+                @x-req:before="loading = true"
+                @x-req:after="loading = false"
                 @x-req:ok="handleSuccess"
                 @x-req:err="handleError"
                 :disabled="loading">
@@ -317,6 +317,31 @@
                     <li x-text="post.title"></li>
                 </template>
             </ul>
+        </div>
+    </div>
+
+    <!-- Test 11: Dynamic Body Evaluation -->
+    <div class="test-section" x-data="{ loading: false, counter: 0, message: 'Hello', result: null }">
+        <h2>Test 11: Reactive Body (evaluateLater)</h2>
+        <p>Body is evaluated at request time with latest values</p>
+        
+        <input type="text" placeholder="Message" x-model="message">
+        <p>Counter: <strong x-text="counter"></strong></p>
+        <button @click="counter++">Increment Counter</button>
+        
+        <button x-req.post="https://jsonplaceholder.typicode.com/posts"
+                x-req-body="{message: message, counter: counter, timestamp: Date.now()}"
+                @x-req:before="loading = true"
+                @x-req:after="loading = false"
+                @x-req:ok="result = $event.detail"
+                :disabled="loading">
+            <span x-show="!loading">Send Current Values</span>
+            <span x-show="loading" class="loading">Sending...</span>
+        </button>
+
+        <div x-show="result" class="result">
+            <p class="success">✓ Posted with current values!</p>
+            <pre x-text="JSON.stringify(result, null, 2)"></pre>
         </div>
     </div>
 
