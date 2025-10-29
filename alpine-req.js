@@ -55,21 +55,13 @@ document.addEventListener('alpine:init', () => {
         log('Parsed method:', method, 'endpoint:', endpoint, 'triggers:', triggers);
 
         const makeRequest = async (event) => {
-            const $data = Alpine.$data(el);
-
-            // Get loading indicator variable name
-            const indicatorAttr = el.getAttribute('x-req-indicator');
-
-            // Set loading to true
-            if (indicatorAttr) {
-                const varName = indicatorAttr.trim();
-                if (varName && varName in $data) {
-                    $data[varName] = true;
-                    log('Set loading indicator:', varName, '= true');
-                }
-            }
-
             try {
+                // Dispatch start event
+                log('Dispatching x-req:start event');
+                el.dispatchEvent(new CustomEvent('x-req:start', {
+                    bubbles: true
+                }));
+
                 // Evaluate endpoint (in case it's dynamic)
                 const finalEndpoint = evaluate(endpoint);
 
@@ -98,33 +90,23 @@ document.addEventListener('alpine:init', () => {
                 log('Response status:', response.status);
 
                 if (!response.ok) {
-                    log('Response not ok, calling error handler');
-                    const errAttr = el.getAttribute('x-req-err');
-                    if (errAttr) {
-                        const errorHandler = $data[errAttr];
-                        if (typeof errorHandler === 'function') {
-                            errorHandler.call($data, response);
-                        } else {
-                            console.error('x-req-err must reference a function, got:', typeof errorHandler);
-                        }
-                    }
+                    log('Response not ok, dispatching x-req:err event');
+                    el.dispatchEvent(new CustomEvent('x-req:err', {
+                        detail: { response, error: new Error(`HTTP ${response.status}`) },
+                        bubbles: true
+                    }));
                     return;
                 }
 
                 const data = await response.json();
                 log('Response data:', data);
 
-                const okAttr = el.getAttribute('x-req-ok');
-                if (okAttr) {
-                    log('Calling success handler');
-                    // Get the function from the Alpine component's data
-                    const successHandler = $data[okAttr];
-                    if (typeof successHandler === 'function') {
-                        successHandler.call($data, data);
-                    } else {
-                        console.error('x-req-ok must reference a function, got:', typeof successHandler);
-                    }
-                }
+                // Dispatch success event
+                log('Dispatching x-req:ok event');
+                el.dispatchEvent(new CustomEvent('x-req:ok', {
+                    detail: data,
+                    bubbles: true
+                }));
 
                 // Handle x-trigger header
                 const triggerHeader = response.headers.get('x-trigger');
@@ -135,37 +117,29 @@ document.addEventListener('alpine:init', () => {
                         if (typeof triggerData === 'object' && triggerData !== null) {
                             Object.entries(triggerData).forEach(([event, detail]) => {
                                 log('Dispatching object event:', event, detail);
-                                el.dispatchEvent(new CustomEvent(event, { detail }));
+                                el.dispatchEvent(new CustomEvent(event, { detail, bubbles: true }));
                             });
                         } else {
                             log('Dispatching string event:', triggerData);
-                            el.dispatchEvent(new CustomEvent(triggerData, { detail: data }));
+                            el.dispatchEvent(new CustomEvent(triggerData, { detail: data, bubbles: true }));
                         }
                     } catch (e) {
                         log('x-trigger not JSON, treating as string event:', triggerHeader);
-                        el.dispatchEvent(new CustomEvent(triggerHeader, { detail: data }));
+                        el.dispatchEvent(new CustomEvent(triggerHeader, { detail: data, bubbles: true }));
                     }
                 }
             } catch (error) {
                 log('Fetch error:', error);
-                const errAttr = el.getAttribute('x-req-err');
-                if (errAttr) {
-                    const errorHandler = $data[errAttr];
-                    if (typeof errorHandler === 'function') {
-                        errorHandler.call($data, response);
-                    } else {
-                        console.error('x-req-err must reference a function, got:', typeof errorHandler);
-                    }
-                }
+                el.dispatchEvent(new CustomEvent('x-req:err', {
+                    detail: { error },
+                    bubbles: true
+                }));
             } finally {
-                // Set loading to false
-                if (indicatorAttr) {
-                    const varName = indicatorAttr.trim();
-                    if (varName && varName in $data) {
-                        $data[varName] = false;
-                        log('Set loading indicator:', varName, '= false');
-                    }
-                }
+                // Dispatch done event
+                log('Dispatching x-req:done event');
+                el.dispatchEvent(new CustomEvent('x-req:done', {
+                    bubbles: true
+                }));
             }
         };
 
