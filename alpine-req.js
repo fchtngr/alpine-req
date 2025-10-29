@@ -1,11 +1,11 @@
 document.addEventListener('alpine:init', () => {
-    Alpine.directive('req', (el, { expression, modifiers }, { evaluate }) => {
+    Alpine.directive('req', (el, { expression, modifiers }, { evaluateLater, evaluate }) => {
         const DEBUG = true;
         const log = (...args) => DEBUG && console.log('[x-req]', ...args);
 
         log('Initialized on element:', el, 'expression:', expression, 'modifiers:', modifiers);
 
-        // Parse method from modifiers, expression is the endpoint
+        // Parse method from modifiers
         let method = 'GET';
         modifiers.forEach(mod => {
             if (['post', 'put', 'delete', 'patch', 'get'].includes(mod)) {
@@ -13,7 +13,30 @@ document.addEventListener('alpine:init', () => {
             }
         });
 
-        const endpoint = expression;
+        // Smart endpoint evaluation
+        let getEndpoint;
+        if (expression.startsWith('`')) {
+            // Template literal - use evaluateLater for reactivity
+            getEndpoint = evaluateLater(expression);
+        } else {
+            // Static string - use as-is
+            const staticEndpoint = expression;
+            getEndpoint = (callback) => callback(staticEndpoint);
+        }
+
+        // Setup body evaluator
+        let getBody = null;
+        const bodyAttr = el.getAttribute('x-req-body');
+        if (bodyAttr) {
+            getBody = evaluateLater(bodyAttr);
+        }
+
+        // Setup headers evaluator
+        let getHeaders = null;
+        const headersAttr = el.getAttribute('x-req-headers');
+        if (headersAttr) {
+            getHeaders = evaluateLater(headersAttr);
+        }
 
         // Parse triggers from x-req-trigger attribute
         let triggers = [];
@@ -52,31 +75,30 @@ document.addEventListener('alpine:init', () => {
             triggers.push({ event: 'click', target: el, prevent: false, stop: false });
         }
 
-        log('Parsed method:', method, 'endpoint:', endpoint, 'triggers:', triggers);
+        log('Parsed method:', method, 'triggers:', triggers);
 
         const makeRequest = async (event) => {
             try {
-                // Dispatch start event
-                log('Dispatching x-req:start event');
-                el.dispatchEvent(new CustomEvent('x-req:start', {
+                // Dispatch before event
+                log('Dispatching x-req:before event');
+                el.dispatchEvent(new CustomEvent('x-req:before', {
                     bubbles: true
                 }));
 
-                // Evaluate endpoint (in case it's dynamic)
-                const finalEndpoint = evaluate(endpoint);
+                // Get the endpoint (will be evaluated if it's a template literal)
+                let finalEndpoint;
+                getEndpoint(value => finalEndpoint = value);
 
-                // Get body from x-req-body attribute
+                // Get body (evaluated at request time)
                 let body = null;
-                const bodyAttr = el.getAttribute('x-req-body');
-                if (bodyAttr) {
-                    body = evaluate(bodyAttr);
+                if (getBody) {
+                    getBody(value => body = value);
                 }
 
-                // Get headers from x-req-headers attribute
+                // Get headers (evaluated at request time)
                 let headers = {};
-                const headersAttr = el.getAttribute('x-req-headers');
-                if (headersAttr) {
-                    headers = evaluate(headersAttr);
+                if (getHeaders) {
+                    getHeaders(value => headers = value);
                 }
 
                 log('Making request to:', finalEndpoint, 'method:', method, 'body:', body);
@@ -135,9 +157,9 @@ document.addEventListener('alpine:init', () => {
                     bubbles: true
                 }));
             } finally {
-                // Dispatch done event
-                log('Dispatching x-req:done event');
-                el.dispatchEvent(new CustomEvent('x-req:done', {
+                // Dispatch after event
+                log('Dispatching x-req:after event');
+                el.dispatchEvent(new CustomEvent('x-req:after', {
                     bubbles: true
                 }));
             }
